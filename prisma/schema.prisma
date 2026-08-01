@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  BU_HEAD
+  ENGINEERING_HEAD
+  PRESALES
+  SALES
+  ACCOUNT_MANAGER
+  LEADERSHIP
+}
+
+enum ServiceLine {
+  VAPT
+  SOC
+  GRC_COMPLIANCE
+  ADVISORY
+  MANAGED_SECURITY
+  OTHER
+}
+
+enum LeadSource {
+  INBOUND
+  OUTBOUND
+  REFERRAL
+  EVENT
+  PARTNER
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  DISQUALIFIED
+  CONVERTED
+}
+
+enum DealStage {
+  QUALIFIED
+  PROPOSAL
+  PRESALES
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum LostReason {
+  PRICE
+  COMPETITOR
+  TIMING
+  NO_BUDGET
+  LOST_TO_INHOUSE
+  OTHER
+}
+
+enum ActivityType {
+  CALL
+  MEETING
+  EMAIL
+  PROPOSAL_SENT
+  FOLLOW_UP
+  NOTE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  role      Role
+  createdAt DateTime @default(now())
+
+  ownedLeads     Lead[]     @relation("LeadOwner")
+  ownedDeals     Deal[]     @relation("DealSalesOwner")
+  presalesDeals  Deal[]     @relation("DealPresalesOwner")
+  activities     Activity[]
+  targets        Target[]
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  name      String
+  industry  String?
+  createdAt DateTime @default(now())
+
+  leads Lead[]
+  deals Deal[]
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  contactName  String
+  contactEmail String?
+  contactPhone String?
+  source       LeadSource
+  serviceLine  ServiceLine
+  status       LeadStatus @default(NEW)
+  createdAt    DateTime   @default(now())
+
+  account   Account? @relation(fields: [accountId], references: [id])
+  accountId String?
+
+  owner   User   @relation("LeadOwner", fields: [ownerId], references: [id])
+  ownerId String
+
+  deals      Deal[]
+  activities Activity[]
+}
+
+model Deal {
+  id                String     @id @default(cuid())
+  title             String
+  stage             DealStage  @default(QUALIFIED)
+  value             Float
+  expectedCloseDate DateTime
+  actualCloseDate   DateTime?
+  lostReason        LostReason?
+  serviceLine       ServiceLine
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  lead   Lead   @relation(fields: [leadId], references: [id])
+  leadId String
+
+  account   Account @relation(fields: [accountId], references: [id])
+  accountId String
+
+  salesOwner   User   @relation("DealSalesOwner", fields: [salesOwnerId], references: [id])
+  salesOwnerId String
+
+  presalesOwner   User?   @relation("DealPresalesOwner", fields: [presalesOwnerId], references: [id])
+  presalesOwnerId String?
+
+  activities Activity[]
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  note      String
+  createdAt DateTime     @default(now())
+
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+  leadId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id])
+  dealId String?
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}
+
+model Target {
+  id          String @id @default(cuid())
+  periodMonth Int
+  periodYear  Int
+  amount      Float
+
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId String
+
+  @@unique([ownerId, periodMonth, periodYear])
+}
