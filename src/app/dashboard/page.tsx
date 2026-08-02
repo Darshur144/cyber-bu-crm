@@ -8,6 +8,8 @@ import {
   TargetVsActualChart,
 } from "@/components/DashboardCharts";
 
+export const dynamic = "force-dynamic";
+
 function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">

@@ -8,6 +8,8 @@ import {
   formatCompactINR,
 } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 const STAGE_COLORS: Record<string, string> = {
   QUALIFIED: "border-t-slate-400",
   PROPOSAL: "border-t-blue-400",

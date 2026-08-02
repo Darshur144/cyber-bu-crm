@@ -6,6 +6,8 @@ import {
   ACTIVITY_TYPE_LABELS,
 } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export default async function QuickEntryPage({
   searchParams,
 }: {
