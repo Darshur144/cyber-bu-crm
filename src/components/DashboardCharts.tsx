@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Bar,
@@ -48,7 +48,7 @@ export function MonthlyClosuresChart({ data }: { data: MonthlyPoint[] }) {
         <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke="#94a3b8" width={60} />
         <Tooltip
-          formatter={(value: number) => formatINR(value)}
+          formatter={(value: unknown) => formatINR(Number(value) || 0)}
           contentStyle={{ fontSize: 12, borderRadius: 8 }}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -108,13 +108,13 @@ export function LostReasonChart({ data }: { data: { reason: string; count: numbe
           cx="50%"
           cy="50%"
           outerRadius={80}
-          label={(entry) => `${entry.name} (${entry.count})`}
+          label={(entry: { name?: string; count?: number }) => `${entry.name} (${entry.count})`}
         >
           {chartData.map((_, i) => (
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={(value: number) => formatINR(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -137,7 +137,7 @@ export function ServiceLineMixChart({ data }: { data: { serviceLine: string; val
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={(value: number) => formatINR(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
       </PieChart>
     </ResponsiveContainer>
@@ -158,7 +158,7 @@ export function TargetVsActualChart({
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
         <XAxis dataKey="ownerName" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke="#94a3b8" width={60} />
-        <Tooltip formatter={(value: number) => formatINR(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar dataKey="target" fill="#cbd5e1" radius={[4, 4, 0, 0]} name="Target" />
         <Bar dataKey="actual" fill="#0f172a" radius={[4, 4, 0, 0]} name="Actual (won)" />
@@ -166,3 +166,5 @@ export function TargetVsActualChart({
     </ResponsiveContainer>
   );
 }
+
+
