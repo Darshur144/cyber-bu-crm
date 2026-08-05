@@ -31,14 +31,19 @@ export const STAGE_ORDER = [
   "LOST",
 ] as const;
 
-export const SERVICE_LINE_LABELS: Record<string, string> = {
-  VAPT: "VAPT",
-  SOC: "SOC",
-  GRC_COMPLIANCE: "GRC / Compliance",
-  ADVISORY: "Advisory",
-  MANAGED_SECURITY: "Managed Security",
-  OTHER: "Other",
+export const DEAL_CATEGORY_LABELS: Record<string, string> = {
+  NEW_BUSINESS: "New Business",
+  MANAGED_SERVICE: "Managed Service",
+  PROFESSIONAL_SERVICE: "Professional Service",
+  RENEWAL: "Renewal",
 };
+
+export const DEAL_CATEGORY_ORDER = [
+  "NEW_BUSINESS",
+  "MANAGED_SERVICE",
+  "PROFESSIONAL_SERVICE",
+  "RENEWAL",
+] as const;
 
 export const LOST_REASON_LABELS: Record<string, string> = {
   PRICE: "Price",
@@ -74,4 +79,9 @@ const MONTH_NAMES = [
 
 export function monthLabel(month: number, year: number): string {
   return `${MONTH_NAMES[month - 1]} '${String(year).slice(2)}`;
+}
+
+export function quarterLabel(quarter: number | null, year: number | null): string {
+  if (!quarter || !year) return "No quarter";
+  return `Q${quarter} ${year}`;
 }

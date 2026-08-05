@@ -10,12 +10,13 @@ export async function getFilterOptions() {
   return { users, accounts };
 }
 
-export async function getPipelineDeals(filters: { ownerId?: string; serviceLine?: string }) {
+export async function getPipelineDeals(filters: { ownerId?: string; oem?: string; category?: string }) {
   const deals = await prisma.deal.findMany({
     where: {
       stage: { in: [...OPEN_STAGES, "WON", "LOST"] },
       ...(filters.ownerId ? { salesOwnerId: filters.ownerId } : {}),
-      ...(filters.serviceLine ? { serviceLine: filters.serviceLine as never } : {}),
+      ...(filters.oem ? { oem: filters.oem } : {}),
+      ...(filters.category ? { category: filters.category as never } : {}),
     },
     include: {
       lead: true,
@@ -28,17 +29,37 @@ export async function getPipelineDeals(filters: { ownerId?: string; serviceLine?
 
   return deals.map((d) => ({
     id: d.id,
+    externalDealId: d.externalDealId,
     title: d.title,
     stage: d.stage,
     value: d.value,
-    serviceLine: d.serviceLine,
+    oem: d.oem,
+    domain: d.domain,
+    category: d.category,
+    fiscalQuarter: d.fiscalQuarter,
+    fiscalYear: d.fiscalYear,
+    sourceStatus: d.sourceStatus,
     lostReason: d.lostReason,
-    expectedCloseDate: d.expectedCloseDate.toISOString(),
+    expectedCloseDate: d.expectedCloseDate ? d.expectedCloseDate.toISOString() : null,
     accountName: d.account.name,
-    contactName: d.lead.contactName,
-    salesOwnerName: d.salesOwner.name,
+    contactName: d.lead?.contactName ?? null,
+    salesOwnerName: d.salesOwner?.name ?? null,
     presalesOwnerName: d.presalesOwner?.name ?? null,
   }));
+}
+
+export async function getDealForEdit(id: string) {
+  const [deal, accounts, users] = await Promise.all([
+    prisma.deal.findUnique({ where: { id } }),
+    prisma.account.findMany({ orderBy: { name: "asc" } }),
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+  ]);
+  return { deal, accounts, users };
+}
+
+export async function getUniqueOems() {
+  const rows = await prisma.deal.findMany({ distinct: ["oem"], select: { oem: true }, orderBy: { oem: "asc" } });
+  return rows.map((r) => r.oem);
 }
 
 export async function getQuickEntryData() {
@@ -53,7 +74,7 @@ export async function getQuickEntryData() {
     }),
     prisma.deal.findMany({
       where: { stage: { in: [...OPEN_STAGES] } },
-      include: { lead: true },
+      include: { lead: true, account: true },
       orderBy: { updatedAt: "desc" },
       take: 30,
     }),
@@ -68,82 +89,114 @@ export async function getDashboardData() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ month: d.getMonth() + 1, year: d.getFullYear() });
   }
-  const rangeStart = new Date(months[0].year, months[0].month - 1, 1);
 
-  const [closedDeals, openDeals, allTimeClosedDeals, leads, targets] = await Promise.all([
+  const [allDeals, leads, targets, topOpportunities, installBaseCount] = await Promise.all([
     prisma.deal.findMany({
-      where: {
-        stage: { in: ["WON", "LOST"] },
-        actualCloseDate: { gte: rangeStart },
-      },
       select: {
         stage: true,
         value: true,
-        serviceLine: true,
+        oem: true,
+        domain: true,
+        category: true,
+        fiscalQuarter: true,
+        fiscalYear: true,
+        sourceStatus: true,
         lostReason: true,
+        title: true,
         actualCloseDate: true,
         salesOwnerId: true,
         salesOwner: { select: { name: true } },
+        account: { select: { name: true } },
+        activities: {
+          where: { type: "NOTE" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { note: true },
+        },
       },
-    }),
-    prisma.deal.findMany({
-      where: { stage: { in: [...OPEN_STAGES] } },
-      select: { value: true },
-    }),
-    prisma.deal.findMany({
-      where: { stage: { in: ["WON", "LOST"] } },
-      select: { stage: true },
     }),
     prisma.lead.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.target.findMany({
       where: { periodMonth: months[5].month, periodYear: months[5].year },
       include: { owner: true },
     }),
+    prisma.topOpportunity.findMany({ orderBy: { value: "desc" } }),
+    prisma.account.count({ where: { isInstallBase: true } }),
   ]);
 
-  const monthly = months.map(({ month, year }) => {
-    const dealsInMonth = closedDeals.filter((d) => {
-      const c = d.actualCloseDate!;
-      return c.getMonth() + 1 === month && c.getFullYear() === year;
-    });
-    const won = dealsInMonth.filter((d) => d.stage === "WON");
-    const lost = dealsInMonth.filter((d) => d.stage === "LOST");
-    return {
-      month,
-      year,
-      wonValue: won.reduce((s, d) => s + d.value, 0),
-      wonCount: won.length,
-      lostValue: lost.reduce((s, d) => s + d.value, 0),
-      lostCount: lost.length,
-    };
-  });
-
-  const wonAllTime = allTimeClosedDeals.filter((d) => d.stage === "WON").length;
-  const lostAllTime = allTimeClosedDeals.filter((d) => d.stage === "LOST").length;
-  const winRate = wonAllTime + lostAllTime > 0 ? wonAllTime / (wonAllTime + lostAllTime) : 0;
+  const openDeals = allDeals.filter((d) => (OPEN_STAGES as readonly string[]).includes(d.stage));
+  const wonDeals = allDeals.filter((d) => d.stage === "WON");
+  const lostDeals = allDeals.filter((d) => d.stage === "LOST");
 
   const pipelineValue = openDeals.reduce((s, d) => s + d.value, 0);
+  const cloudflarePipeline = openDeals.filter((d) => d.domain === "Cloudflare").reduce((s, d) => s + d.value, 0);
+  const otherPipeline = pipelineValue - cloudflarePipeline;
 
-  const lostByReason = new Map<string, { count: number; value: number }>();
-  for (const d of closedDeals.filter((d) => d.stage === "LOST")) {
-    const key = d.lostReason ?? "OTHER";
-    const entry = lostByReason.get(key) ?? { count: 0, value: 0 };
+  const winRate = wonDeals.length + lostDeals.length > 0 ? wonDeals.length / (wonDeals.length + lostDeals.length) : 0;
+
+  // Quarter x Domain pivot (open pipeline value)
+  const quarterMap = new Map<string, { quarter: number; year: number; cloudflare: number; other: number }>();
+  let dealsWithoutQuarter = 0;
+  for (const d of openDeals) {
+    if (!d.fiscalQuarter || !d.fiscalYear) {
+      dealsWithoutQuarter++;
+      continue;
+    }
+    const key = `${d.fiscalYear}-${d.fiscalQuarter}`;
+    const entry = quarterMap.get(key) ?? { quarter: d.fiscalQuarter, year: d.fiscalYear, cloudflare: 0, other: 0 };
+    if (d.domain === "Cloudflare") entry.cloudflare += d.value;
+    else entry.other += d.value;
+    quarterMap.set(key, entry);
+  }
+  const quarterPivot = Array.from(quarterMap.values()).sort((a, b) => a.year - b.year || a.quarter - b.quarter);
+
+  // Status breakdown (count/value/% using sourceStatus, falling back to stage-derived label)
+  const statusMap = new Map<string, { count: number; value: number }>();
+  for (const d of allDeals) {
+    const key = d.sourceStatus ?? (d.stage === "WON" ? "Closed - Won" : d.stage === "LOST" ? "Closed - Lost" : "Open");
+    const entry = statusMap.get(key) ?? { count: 0, value: 0 };
     entry.count += 1;
     entry.value += d.value;
-    lostByReason.set(key, entry);
+    statusMap.set(key, entry);
   }
+  const totalValueAllDeals = allDeals.reduce((s, d) => s + d.value, 0);
+  const statusBreakdown = Array.from(statusMap.entries())
+    .map(([status, v]) => ({ status, ...v, pct: totalValueAllDeals > 0 ? v.value / totalValueAllDeals : 0 }))
+    .sort((a, b) => b.value - a.value);
 
-  const serviceLineMix = new Map<string, number>();
-  for (const d of closedDeals.filter((d) => d.stage === "WON")) {
-    serviceLineMix.set(d.serviceLine, (serviceLineMix.get(d.serviceLine) ?? 0) + d.value);
+  // Category mix (open pipeline)
+  const categoryMap = new Map<string, number>();
+  for (const d of openDeals) {
+    categoryMap.set(d.category, (categoryMap.get(d.category) ?? 0) + d.value);
   }
+  const categoryMix = Array.from(categoryMap.entries()).map(([category, value]) => ({ category, value }));
+
+  // OEM mix (top 8 by open pipeline value)
+  const oemMap = new Map<string, number>();
+  for (const d of openDeals) {
+    oemMap.set(d.oem, (oemMap.get(d.oem) ?? 0) + d.value);
+  }
+  const oemMix = Array.from(oemMap.entries())
+    .map(([oem, value]) => ({ oem, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+
+  const recentLostDeals = lostDeals
+    .slice(0, 10)
+    .map((d) => ({
+      title: d.title,
+      accountName: d.account.name,
+      value: d.value,
+      note: d.activities[0]?.note ?? null,
+    }));
 
   const currentMonth = months[5];
   const targetVsActual = targets.map((t) => {
-    const actual = closedDeals
-      .filter((d) => d.stage === "WON" && d.salesOwnerId === t.ownerId)
+    const actual = wonDeals
+      .filter((d) => d.salesOwnerId === t.ownerId)
       .filter((d) => {
-        const c = d.actualCloseDate!;
+        if (!d.actualCloseDate) return false;
+        const c = d.actualCloseDate;
         return c.getMonth() + 1 === currentMonth.month && c.getFullYear() === currentMonth.year;
       })
       .reduce((s, d) => s + d.value, 0);
@@ -151,16 +204,20 @@ export async function getDashboardData() {
   });
 
   return {
-    monthly,
-    winRate,
     pipelineValue,
-    lostByReason: Array.from(lostByReason.entries()).map(([reason, v]) => ({ reason, ...v })),
-    serviceLineMix: Array.from(serviceLineMix.entries()).map(([serviceLine, value]) => ({
-      serviceLine,
-      value,
-    })),
+    cloudflarePipeline,
+    otherPipeline,
+    winRate,
+    openDealCount: openDeals.length,
+    quarterPivot,
+    dealsWithoutQuarter,
+    statusBreakdown,
+    categoryMix,
+    oemMix,
+    topOpportunities,
+    recentLostDeals,
     leadFunnel: leads.map((l) => ({ status: l.status, count: l._count._all })),
     targetVsActual,
-    openDealCount: openDeals.length,
+    installBaseCount,
   };
 }

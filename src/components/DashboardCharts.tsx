@@ -13,51 +13,20 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  LOST_REASON_LABELS,
-  SERVICE_LINE_LABELS,
-  formatCompactINR,
-  formatINR,
-  monthLabel,
-} from "@/lib/format";
+import { DEAL_CATEGORY_LABELS, formatCompactINR, formatINR } from "@/lib/format";
 
-const PALETTE = ["#0f172a", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
-
-type MonthlyPoint = {
-  month: number;
-  year: number;
-  wonValue: number;
-  wonCount: number;
-  lostValue: number;
-  lostCount: number;
-};
-
-export function MonthlyClosuresChart({ data }: { data: MonthlyPoint[] }) {
-  const chartData = data.map((d) => ({
-    name: monthLabel(d.month, d.year),
-    Won: d.wonValue,
-    Lost: d.lostValue,
-    wonCount: d.wonCount,
-    lostCount: d.lostCount,
-  }));
-
-  return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-        <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke="#94a3b8" width={60} />
-        <Tooltip
-          formatter={(value: unknown) => formatINR(Number(value) || 0)}
-          contentStyle={{ fontSize: 12, borderRadius: 8 }}
-        />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="Won" fill="#10b981" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Lost" fill="#ef4444" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
+const PALETTE = [
+  "var(--color-accent)",
+  "var(--color-positive)",
+  "var(--color-warning)",
+  "var(--color-danger)",
+  "#6366f1",
+  "#0d9488",
+  "#a855f7",
+  "#14171f",
+];
+const GRID = "var(--color-line)";
+const AXIS = "var(--color-ink-faint)";
 
 export function LeadFunnelChart({ data }: { data: { status: string; count: number }[] }) {
   const order = ["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "DISQUALIFIED"];
@@ -75,71 +44,19 @@ export function LeadFunnelChart({ data }: { data: { status: string; count: numbe
     }))
     .filter((d) => d.count > 0);
 
+  if (chartData.length === 0) {
+    return <p className="py-10 text-center text-sm text-ink-faint">No leads logged yet.</p>;
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={220}>
       <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-        <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" allowDecimals={false} />
-        <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" width={90} />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+        <XAxis type="number" tick={{ fontSize: 11 }} stroke={AXIS} allowDecimals={false} />
+        <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke={AXIS} width={90} />
         <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-        <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="count" fill="var(--color-accent)" radius={[0, 4, 4, 0]} />
       </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-export function LostReasonChart({ data }: { data: { reason: string; count: number; value: number }[] }) {
-  if (data.length === 0) {
-    return <p className="py-12 text-center text-sm text-slate-400">No lost deals yet.</p>;
-  }
-  const chartData = data.map((d) => ({
-    name: LOST_REASON_LABELS[d.reason] ?? d.reason,
-    value: d.value,
-    count: d.count,
-  }));
-
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <PieChart>
-        <Pie
-          data={chartData}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          outerRadius={80}
-          label={(entry: { name?: string; count?: number }) => `${entry.name} (${entry.count})`}
-        >
-          {chartData.map((_, i) => (
-            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
-
-export function ServiceLineMixChart({ data }: { data: { serviceLine: string; value: number }[] }) {
-  if (data.length === 0) {
-    return <p className="py-12 text-center text-sm text-slate-400">No won deals yet.</p>;
-  }
-  const chartData = data.map((d) => ({
-    name: SERVICE_LINE_LABELS[d.serviceLine] ?? d.serviceLine,
-    value: d.value,
-  }));
-
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <PieChart>
-        <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-          {chartData.map((_, i) => (
-            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-      </PieChart>
     </ResponsiveContainer>
   );
 }
@@ -150,21 +67,57 @@ export function TargetVsActualChart({
   data: { ownerName: string; target: number; actual: number }[];
 }) {
   if (data.length === 0) {
-    return <p className="py-12 text-center text-sm text-slate-400">No targets set for this month.</p>;
+    return <p className="py-10 text-center text-sm text-ink-faint">No targets set for this month.</p>;
   }
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-        <XAxis dataKey="ownerName" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-        <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke="#94a3b8" width={60} />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+        <XAxis dataKey="ownerName" tick={{ fontSize: 12 }} stroke={AXIS} />
+        <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke={AXIS} width={60} />
         <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="target" fill="#cbd5e1" radius={[4, 4, 0, 0]} name="Target" />
-        <Bar dataKey="actual" fill="#0f172a" radius={[4, 4, 0, 0]} name="Actual (won)" />
+        <Bar dataKey="target" fill="var(--color-line)" radius={[4, 4, 0, 0]} name="Target" />
+        <Bar dataKey="actual" fill="var(--color-ink)" radius={[4, 4, 0, 0]} name="Actual (won)" />
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
+export function CategoryMixChart({ data }: { data: { category: string; value: number }[] }) {
+  if (data.length === 0) {
+    return <p className="py-10 text-center text-sm text-ink-faint">No open pipeline.</p>;
+  }
+  const chartData = data.map((d) => ({ name: DEAL_CATEGORY_LABELS[d.category] ?? d.category, value: d.value }));
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <PieChart>
+        <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label>
+          {chartData.map((_, i) => (
+            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function OemMixChart({ data }: { data: { oem: string; value: number }[] }) {
+  if (data.length === 0) {
+    return <p className="py-10 text-center text-sm text-ink-faint">No open pipeline.</p>;
+  }
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+        <XAxis type="number" tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke={AXIS} />
+        <YAxis type="category" dataKey="oem" tick={{ fontSize: 12 }} stroke={AXIS} width={80} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Bar dataKey="value" fill="var(--color-accent)" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 

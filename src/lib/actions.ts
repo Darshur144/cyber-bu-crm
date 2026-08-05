@@ -11,7 +11,6 @@ export async function createLead(formData: FormData) {
   const accountId = String(formData.get("accountId") ?? "");
   const newAccountName = String(formData.get("newAccountName") ?? "").trim();
   const source = String(formData.get("source") ?? "OTHER");
-  const serviceLine = String(formData.get("serviceLine") ?? "OTHER");
   const ownerId = String(formData.get("ownerId") ?? "");
 
   if (!contactName || !ownerId) {
@@ -31,7 +30,6 @@ export async function createLead(formData: FormData) {
       contactPhone,
       accountId: resolvedAccountId,
       source: source as never,
-      serviceLine: serviceLine as never,
       ownerId,
     },
   });
@@ -91,4 +89,47 @@ export async function updateDealStage(formData: FormData) {
 
   revalidatePath("/pipeline");
   revalidatePath("/dashboard");
+}
+
+export async function updateDeal(formData: FormData) {
+  const dealId = String(formData.get("dealId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const accountId = String(formData.get("accountId") ?? "");
+  const oem = String(formData.get("oem") ?? "").trim();
+  const category = String(formData.get("category") ?? "NEW_BUSINESS");
+  const stage = String(formData.get("stage") ?? "QUALIFIED");
+  const value = Number(formData.get("value") ?? 0);
+  const fiscalQuarter = formData.get("fiscalQuarter") ? Number(formData.get("fiscalQuarter")) : null;
+  const fiscalYear = formData.get("fiscalYear") ? Number(formData.get("fiscalYear")) : null;
+  const salesOwnerId = String(formData.get("salesOwnerId") ?? "") || null;
+  const presalesOwnerId = String(formData.get("presalesOwnerId") ?? "") || null;
+  const lostReason = String(formData.get("lostReason") ?? "") || null;
+
+  if (!dealId || !title || !accountId || !oem) {
+    throw new Error("Deal, title, account, and OEM are required");
+  }
+
+  const isClosed = stage === "WON" || stage === "LOST";
+
+  await prisma.deal.update({
+    where: { id: dealId },
+    data: {
+      title,
+      accountId,
+      oem,
+      category: category as never,
+      stage: stage as never,
+      value,
+      fiscalQuarter,
+      fiscalYear,
+      salesOwnerId,
+      presalesOwnerId,
+      lostReason: stage === "LOST" ? (lostReason as never) : null,
+      actualCloseDate: isClosed ? new Date() : null,
+    },
+  });
+
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+  redirect("/pipeline?updated=1");
 }
