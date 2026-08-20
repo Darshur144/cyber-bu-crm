@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ProductSwitch } from "@/components/ProductSwitch";
 
 const navItems = [
   { href: "/executive-dashboard", label: "Executive Dashboard" },
@@ -47,9 +46,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-4 hidden px-2 lg:mt-auto lg:block">
-        <ProductSwitch />
-      </div>
     </aside>
   );
 }
