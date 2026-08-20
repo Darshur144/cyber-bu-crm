@@ -126,6 +126,7 @@ model Deal {
   stage             DealStage    @default(QUALIFIED)
   sourceStatus      String?
   value             Float
+  marginPercent     Float?
   expectedCloseDate DateTime?
   actualCloseDate   DateTime?
   lostReason        LostReason?
@@ -182,4 +183,49 @@ model Target {
   ownerId String
 
   @@unique([ownerId, periodMonth, periodYear])
+}
+
+enum TelemetrySourceKind {
+  AGENT
+  MCP
+  GATEWAY
+}
+
+enum TelemetryStatus {
+  OK
+  ERROR
+}
+
+model TelemetrySource {
+  id         String               @id @default(cuid())
+  kind       TelemetrySourceKind
+  name       String
+  lastSeenAt DateTime             @default(now())
+  createdAt  DateTime             @default(now())
+  events     TelemetryEvent[]
+
+  @@unique([kind, name])
+}
+
+model TelemetryEvent {
+  id           String          @id @default(cuid())
+  source       TelemetrySource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId     String
+  eventType    String
+  status       TelemetryStatus @default(OK)
+  durationMs   Int?
+  model        String?
+  operation    String?
+  tokensIn     Int?
+  tokensOut    Int?
+  costUsd      Float?
+  errorMessage String?
+  traceId      String?
+  occurredAt   DateTime        @default(now())
+  metadata     String?
+
+  @@index([occurredAt])
+  @@index([sourceId, occurredAt])
+  @@index([status, occurredAt])
+  @@index([eventType])
 }

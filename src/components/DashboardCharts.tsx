@@ -18,15 +18,22 @@ import { DEAL_CATEGORY_LABELS, formatCompactINR, formatINR } from "@/lib/format"
 const PALETTE = [
   "var(--color-accent)",
   "var(--color-positive)",
-  "var(--color-warning)",
+  "var(--color-accent3)",
   "var(--color-danger)",
-  "#6366f1",
+  "var(--color-accent2)",
   "#0d9488",
   "#a855f7",
-  "#14171f",
+  "var(--color-ink-soft)",
 ];
 const GRID = "var(--color-line)";
 const AXIS = "var(--color-ink-faint)";
+const TOOLTIP = {
+  fontSize: 12,
+  borderRadius: 8,
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-line)",
+  color: "var(--color-ink)",
+} as const;
 
 export function LeadFunnelChart({ data }: { data: { status: string; count: number }[] }) {
   const order = ["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "DISQUALIFIED"];
@@ -54,7 +61,7 @@ export function LeadFunnelChart({ data }: { data: { status: string; count: numbe
         <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 11 }} stroke={AXIS} allowDecimals={false} />
         <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke={AXIS} width={90} />
-        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip contentStyle={TOOLTIP} />
         <Bar dataKey="count" fill="var(--color-accent)" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -75,10 +82,10 @@ export function TargetVsActualChart({
         <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
         <XAxis dataKey="ownerName" tick={{ fontSize: 12 }} stroke={AXIS} />
         <YAxis tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke={AXIS} width={60} />
-        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={TOOLTIP} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar dataKey="target" fill="var(--color-line)" radius={[4, 4, 0, 0]} name="Target" />
-        <Bar dataKey="actual" fill="var(--color-ink)" radius={[4, 4, 0, 0]} name="Actual (won)" />
+        <Bar dataKey="actual" fill="var(--color-accent)" radius={[4, 4, 0, 0]} name="Actual (won)" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -97,7 +104,7 @@ export function CategoryMixChart({ data }: { data: { category: string; value: nu
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={TOOLTIP} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
       </PieChart>
     </ResponsiveContainer>
@@ -114,7 +121,7 @@ export function OemMixChart({ data }: { data: { oem: string; value: number }[] }
         <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
         <XAxis type="number" tickFormatter={(v) => formatCompactINR(v)} tick={{ fontSize: 11 }} stroke={AXIS} />
         <YAxis type="category" dataKey="oem" tick={{ fontSize: 12 }} stroke={AXIS} width={80} />
-        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+        <Tooltip formatter={(value: unknown) => formatINR(Number(value) || 0)} contentStyle={TOOLTIP} />
         <Bar dataKey="value" fill="var(--color-accent)" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>

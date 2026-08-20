@@ -56,11 +56,58 @@
 
   --color-warning: var(--color-warning);
   --color-warning-soft: var(--color-warning-soft);
+  --color-accent2: #43d9e8;
+  --color-accent3: #b98cff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* CRM product: night-ops console from the wireframe — amber primary, cyan secondary. */
+.crm-app {
+  --background: #080a0f;
+  --foreground: #e6eaf1;
+  --color-paper: #080a0f;
+  --color-surface: #0e121a;
+  --color-ink: #e6eaf1;
+  --color-ink-soft: #7c88a0;
+  --color-ink-faint: #454f61;
+  --color-line: #1c2431;
+  --color-console: #0a0d13;
+  --color-console-fg: #e6eaf1;
+  --color-console-fg-soft: #7c88a0;
+  --color-accent: #ffb454;
+  --color-accent-soft: rgba(255, 180, 84, 0.12);
+  --color-positive: #43d9e8;
+  --color-positive-soft: rgba(67, 217, 232, 0.12);
+  --color-danger: #ff6b5e;
+  --color-danger-soft: rgba(255, 107, 94, 0.12);
+  --color-warning: #ffb454;
+  --color-warning-soft: rgba(255, 180, 84, 0.12);
+  --color-accent2: #43d9e8;
+  --color-accent3: #b98cff;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.crm-app input:not([type="checkbox"]):not([type="radio"]),
+.crm-app select,
+.crm-app textarea {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+}
+
+.crm-app input:focus-visible,
+.crm-app select:focus-visible,
+.crm-app textarea:focus-visible,
+.crm-app a:focus-visible,
+.crm-app button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 /* Tabular figures for every number the BU cares about — deal values, counts,
@@ -69,4 +116,54 @@ body {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* AI Telemetry is a separate product: cool instrument field, phosphor accent,
+   IBM Plex for readouts. CRM keeps the warm paper console tokens. */
+.telemetry-app {
+  --background: #e8eef0;
+  --foreground: #122028;
+  --color-paper: #e8eef0;
+  --color-surface: #f5f8f9;
+  --color-ink: #122028;
+  --color-ink-soft: #4d5d64;
+  --color-ink-faint: #7d8c92;
+  --color-line: #d4dee1;
+  --color-console: #0f2c32;
+  --color-console-fg: #e6f2f1;
+  --color-console-fg-soft: #8aa8ab;
+  --color-accent: #1a9b94;
+  --color-accent-soft: #def4f2;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-plex-sans), var(--font-geist-sans), ui-sans-serif, sans-serif;
+}
+
+.telemetry-app .figure {
+  font-family: var(--font-plex-mono), var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.telemetry-sweep {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+  background-size: 36% 100%;
+  background-repeat: no-repeat;
+  animation: telemetry-sweep 5.5s linear infinite;
+}
+
+@keyframes telemetry-sweep {
+  from {
+    background-position: -36% 0;
+  }
+  to {
+    background-position: 136% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telemetry-sweep {
+    animation: none;
+    background-position: 50% 0;
+    opacity: 0.55;
+  }
 }

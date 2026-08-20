@@ -72,6 +72,23 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   NOTE: "Note",
 };
 
+export const ROLE_LABELS: Record<string, string> = {
+  BU_HEAD: "BU Head",
+  ENGINEERING_HEAD: "Engineering Head",
+  PRESALES: "Presales",
+  SALES: "Sales",
+  ACCOUNT_MANAGER: "Account Manager",
+  LEADERSHIP: "Leadership",
+};
+
+export const LEAD_STATUS_LABELS: Record<string, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  QUALIFIED: "Qualified",
+  DISQUALIFIED: "Disqualified",
+  CONVERTED: "Converted",
+};
+
 const MONTH_NAMES = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",

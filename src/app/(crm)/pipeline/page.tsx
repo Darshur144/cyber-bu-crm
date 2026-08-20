@@ -10,6 +10,7 @@ import {
   formatCompactINR,
   quarterLabel,
 } from "@/lib/format";
+import { GhostButton, PageHeader } from "@/components/crm/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,13 @@ export default async function PipelinePage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight text-ink">Pipeline</h1>
+      <PageHeader
+        title="Pipeline board"
+        subtitle="Stage columns for the same deals as Opportunities"
+        action={<GhostButton href="/opportunities">Table view</GhostButton>}
+      />
+
+      <div className="mb-6 flex items-center justify-end">
         <form className="flex gap-2 text-sm" method="get">
           <select
             name="ownerId"
@@ -84,7 +90,7 @@ export default async function PipelinePage({
           </select>
           <button
             type="submit"
-            className="rounded-md bg-ink px-3 py-1 text-white hover:bg-ink/80"
+            className="rounded-md bg-accent px-3 py-1 text-sm font-semibold text-[#1a1002] hover:brightness-110"
           >
             Filter
           </button>
@@ -109,7 +115,7 @@ export default async function PipelinePage({
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-ink">{deal.accountName}</p>
                     <Link
-                      href={`/pipeline/${deal.id}/edit`}
+                      href={`/opportunities/${deal.id}`}
                       className="shrink-0 text-xs font-medium text-accent hover:underline"
                     >
                       Edit

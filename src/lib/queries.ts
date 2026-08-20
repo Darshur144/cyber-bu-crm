@@ -101,6 +101,7 @@ export async function getDashboardData() {
         fiscalQuarter: true,
         fiscalYear: true,
         sourceStatus: true,
+        marginPercent: true,
         lostReason: true,
         title: true,
         actualCloseDate: true,
@@ -203,6 +204,12 @@ export async function getDashboardData() {
     return { ownerName: t.owner.name, target: t.amount, actual };
   });
 
+  const ytdWon = wonDeals
+    .filter((d) => d.actualCloseDate && d.actualCloseDate.getFullYear() === now.getFullYear())
+    .reduce((s, d) => s + d.value, 0);
+  const targetTotal = targets.reduce((s, t) => s + t.amount, 0);
+  const estimatedMargin = openDeals.reduce((s, d) => s + d.value * ((d.marginPercent ?? 0) / 100), 0);
+
   return {
     pipelineValue,
     cloudflarePipeline,
@@ -219,5 +226,216 @@ export async function getDashboardData() {
     leadFunnel: leads.map((l) => ({ status: l.status, count: l._count._all })),
     targetVsActual,
     installBaseCount,
+    ytdWon,
+    targetTotal,
+    estimatedMargin,
   };
+}
+
+function isOpenStage(stage: string) {
+  return (OPEN_STAGES as readonly string[]).includes(stage);
+}
+
+export async function getOpportunityRows() {
+  const deals = await prisma.deal.findMany({
+    include: { account: true, salesOwner: true, lead: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const open = deals.filter((d) => isOpenStage(d.stage));
+  const won = deals.filter((d) => d.stage === "WON");
+  const now = new Date();
+  const wonThisMonth = won.filter((d) => {
+    if (!d.actualCloseDate) return false;
+    return d.actualCloseDate.getMonth() === now.getMonth() && d.actualCloseDate.getFullYear() === now.getFullYear();
+  });
+  const openValue = open.reduce((s, d) => s + d.value, 0);
+  return {
+    stats: {
+      openCount: open.length,
+      openValue,
+      avgValue: open.length ? openValue / open.length : 0,
+      wonThisMonthValue: wonThisMonth.reduce((s, d) => s + d.value, 0),
+    },
+    rows: deals.map((d) => ({
+      id: d.id,
+      title: d.title,
+      accountName: d.account.name,
+      oem: d.oem,
+      stage: d.stage,
+      category: d.category,
+      value: d.value,
+      ownerName: d.salesOwner?.name ?? null,
+      quarter: d.fiscalQuarter,
+      year: d.fiscalYear,
+    })),
+  };
+}
+
+export async function getRenewalRows() {
+  const deals = await prisma.deal.findMany({
+    where: { category: "RENEWAL" },
+    include: { account: true, salesOwner: true },
+    orderBy: { expectedCloseDate: "asc" },
+  });
+  return deals.map((d) => ({
+    id: d.id,
+    title: d.title,
+    accountName: d.account.name,
+    oem: d.oem,
+    stage: d.stage,
+    value: d.value,
+    ownerName: d.salesOwner?.name ?? null,
+    expectedCloseDate: d.expectedCloseDate ? d.expectedCloseDate.toISOString() : null,
+  }));
+}
+
+export async function getOemRows() {
+  const deals = await prisma.deal.findMany({
+    select: { oem: true, stage: true, value: true, actualCloseDate: true },
+  });
+  const year = new Date().getFullYear();
+  const map = new Map<
+    string,
+    { oem: string; openCount: number; openValue: number; wonYtd: number; wonCount: number; lostCount: number }
+  >();
+  for (const d of deals) {
+    const entry = map.get(d.oem) ?? {
+      oem: d.oem,
+      openCount: 0,
+      openValue: 0,
+      wonYtd: 0,
+      wonCount: 0,
+      lostCount: 0,
+    };
+    if (isOpenStage(d.stage)) {
+      entry.openCount += 1;
+      entry.openValue += d.value;
+    }
+    if (d.stage === "WON") {
+      entry.wonCount += 1;
+      if (d.actualCloseDate && d.actualCloseDate.getFullYear() === year) entry.wonYtd += d.value;
+    }
+    if (d.stage === "LOST") entry.lostCount += 1;
+    map.set(d.oem, entry);
+  }
+  return Array.from(map.values())
+    .map((e) => ({
+      ...e,
+      winRate: e.wonCount + e.lostCount > 0 ? e.wonCount / (e.wonCount + e.lostCount) : 0,
+    }))
+    .sort((a, b) => b.openValue - a.openValue);
+}
+
+export async function getOemDetail(oem: string) {
+  const deals = await prisma.deal.findMany({
+    where: { oem },
+    include: { account: true, salesOwner: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const open = deals.filter((d) => isOpenStage(d.stage));
+  const accounts = Array.from(new Set(deals.map((d) => d.account.name)));
+  return {
+    oem,
+    openCount: open.length,
+    openValue: open.reduce((s, d) => s + d.value, 0),
+    accountCount: accounts.length,
+    dealCount: deals.length,
+    deals: deals.map((d) => ({
+      id: d.id,
+      title: d.title,
+      accountName: d.account.name,
+      stage: d.stage,
+      value: d.value,
+      ownerName: d.salesOwner?.name ?? null,
+    })),
+    accounts,
+  };
+}
+
+export async function getLeadRows() {
+  const leads = await prisma.lead.findMany({
+    include: { account: true, owner: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const byStatus = new Map<string, number>();
+  for (const l of leads) byStatus.set(l.status, (byStatus.get(l.status) ?? 0) + 1);
+  return {
+    stats: {
+      total: leads.length,
+      newCount: byStatus.get("NEW") ?? 0,
+      qualified: byStatus.get("QUALIFIED") ?? 0,
+      converted: byStatus.get("CONVERTED") ?? 0,
+    },
+    rows: leads.map((l) => ({
+      id: l.id,
+      contactName: l.contactName,
+      contactEmail: l.contactEmail,
+      accountName: l.account?.name ?? null,
+      source: l.source,
+      status: l.status,
+      ownerName: l.owner.name,
+      createdAt: l.createdAt.toISOString(),
+    })),
+  };
+}
+
+export async function getAccountRows() {
+  const accounts = await prisma.account.findMany({
+    include: {
+      deals: { select: { stage: true, value: true } },
+      leads: { select: { id: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  return accounts.map((a) => {
+    const open = a.deals.filter((d) => isOpenStage(d.stage));
+    return {
+      id: a.id,
+      name: a.name,
+      industry: a.industry,
+      isInstallBase: a.isInstallBase,
+      leadCount: a.leads.length,
+      openDealCount: open.length,
+      pipelineValue: open.reduce((s, d) => s + d.value, 0),
+    };
+  });
+}
+
+export async function getPeopleRows() {
+  const users = await prisma.user.findMany({
+    include: {
+      ownedDeals: { select: { stage: true, value: true } },
+      ownedLeads: { select: { id: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  return users.map((u) => {
+    const open = u.ownedDeals.filter((d) => isOpenStage(d.stage));
+    return {
+      id: u.id,
+      name: u.name,
+      role: u.role,
+      leadCount: u.ownedLeads.length,
+      openDealCount: open.length,
+      pipelineValue: open.reduce((s, d) => s + d.value, 0),
+    };
+  });
+}
+
+export async function getDealDetail(id: string) {
+  const [deal, accounts, users] = await Promise.all([
+    prisma.deal.findUnique({
+      where: { id },
+      include: {
+        account: true,
+        lead: true,
+        salesOwner: true,
+        presalesOwner: true,
+        activities: { include: { user: true }, orderBy: { createdAt: "desc" }, take: 12 },
+      },
+    }),
+    prisma.account.findMany({ orderBy: { name: "asc" } }),
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+  ]);
+  return { deal, accounts, users };
 }

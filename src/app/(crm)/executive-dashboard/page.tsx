@@ -6,41 +6,11 @@ import {
   OemMixChart,
   TargetVsActualChart,
 } from "@/components/DashboardCharts";
+import { Card, IconStat, PageHeader, StatCard } from "@/components/crm/ui";
 
 export const dynamic = "force-dynamic";
 
-function StatTile({
-  label,
-  value,
-  hint,
-  tone = "accent",
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "accent" | "positive" | "warning";
-}) {
-  const barColor = tone === "positive" ? "bg-positive" : tone === "warning" ? "bg-warning" : "bg-accent";
-  return (
-    <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-4 pl-5">
-      <div className={`absolute inset-y-0 left-0 w-1 ${barColor}`} />
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">{label}</p>
-      <p className="figure mt-1.5 text-2xl font-semibold text-ink">{value}</p>
-      {hint && <p className="figure mt-1 text-xs text-ink-faint">{hint}</p>}
-    </div>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-export default async function DashboardPage() {
+export default async function ExecutiveDashboardPage() {
   const data = await getDashboardData();
   const targetTotal = data.targetVsActual.reduce((s, t) => s + t.target, 0);
   const actualTotal = data.targetVsActual.reduce((s, t) => s + t.actual, 0);
@@ -48,28 +18,32 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-accent">Leadership view</p>
-        <h1 className="text-xl font-semibold tracking-tight text-ink">Overall Cybersecurity Pipeline</h1>
+      <PageHeader
+        eyebrow="Leadership view"
+        title="Executive Dashboard"
+        subtitle={
+          <>
+            Weekly BU view · <span className="figure font-semibold text-accent">{formatCompactINR(data.pipelineValue)} pipeline</span>
+          </>
+        }
+      />
+
+      <div className="mb-8 flex flex-wrap gap-8">
+        <IconStat label="Target" value={formatCompactINR(data.targetTotal)} tone="accent2" />
+        <IconStat label="YTD" value={formatCompactINR(data.ytdWon)} />
+        <IconStat label="Margin" value={formatCompactINR(data.estimatedMargin)} />
+        <IconStat label="Pipeline" value={formatCompactINR(data.pipelineValue)} tone="accent2" />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile
-          label="Open pipeline value"
-          value={formatINR(data.pipelineValue)}
-          hint={`${data.openDealCount} open deals`}
-        />
-        <StatTile
-          label="Cloudflare vs Other"
-          value={formatCompactINR(data.cloudflarePipeline)}
-          hint={`${formatCompactINR(data.otherPipeline)} Other Cybersecurity`}
-        />
-        <StatTile label="Win rate" value={`${Math.round(data.winRate * 100)}%`} tone="positive" />
-        <StatTile
-          label="Target vs actual (MTD)"
+      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard label="Open deals" value={String(data.openDealCount)} />
+        <StatCard label="Win rate" value={`${Math.round(data.winRate * 100)}%`} />
+        <StatCard label="Cloudflare" value={formatCompactINR(data.cloudflarePipeline)} />
+        <StatCard label="Other cyber" value={formatCompactINR(data.otherPipeline)} />
+        <StatCard
+          label="Target vs actual"
           value={`${targetTotal > 0 ? Math.round((actualTotal / targetTotal) * 100) : 0}%`}
-          hint={`${formatINR(actualTotal)} of ${formatINR(targetTotal)}`}
-          tone="warning"
+          hint={`${formatCompactINR(actualTotal)} of ${formatCompactINR(targetTotal)}`}
         />
       </div>
 
@@ -111,19 +85,19 @@ export default async function DashboardPage() {
             <p className="mt-2 text-xs text-ink-faint">
               {`Excludes ${data.dealsWithoutQuarter} open deal${
                 data.dealsWithoutQuarter === 1 ? "" : "s"
-              } with no quarter assigned — included in the "Open pipeline value" tile above.`}
+              } with no quarter assigned.`}
             </p>
           )}
         </Card>
 
-        <Card title="Closed / open visibility (all domains)">
+        <Card title="Closed / open visibility">
           <div className="overflow-x-auto">
             <table className="figure w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs font-sans text-ink-soft">
                   <th className="py-1.5 pr-2">Status</th>
                   <th className="py-1.5 pr-2 text-right">Deals</th>
-                  <th className="py-1.5 pr-2 text-right">Value (INR)</th>
+                  <th className="py-1.5 pr-2 text-right">Value</th>
                   <th className="py-1.5 text-right">% of Total</th>
                 </tr>
               </thead>
@@ -146,38 +120,36 @@ export default async function DashboardPage() {
         <Card title="Open pipeline by category">
           <CategoryMixChart data={data.categoryMix} />
         </Card>
-        <Card title="Top OEMs / vendors (open pipeline)">
+        <Card title="Top OEMs / vendors">
           <OemMixChart data={data.oemMix} />
         </Card>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Top opportunities (deals in focus)">
+        <Card title="Top opportunities">
           {data.topOpportunities.length === 0 ? (
             <p className="py-10 text-center text-sm text-ink-faint">No opportunities flagged.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-line text-xs text-ink-soft">
-                    <th className="py-1.5 pr-2">Account</th>
-                    <th className="py-1.5 pr-2">Type</th>
-                    <th className="figure py-1.5 pr-2 text-right">Value</th>
-                    <th className="py-1.5">Note</th>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-line text-xs text-ink-soft">
+                  <th className="py-1.5 pr-2">Account</th>
+                  <th className="py-1.5 pr-2">Type</th>
+                  <th className="figure py-1.5 pr-2 text-right">Value</th>
+                  <th className="py-1.5">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.topOpportunities.map((t) => (
+                  <tr key={t.id} className="border-b border-line/60 align-top">
+                    <td className="py-1.5 pr-2 font-medium text-ink">{t.accountName}</td>
+                    <td className="py-1.5 pr-2 text-ink-soft">{t.dealType ?? "—"}</td>
+                    <td className="figure py-1.5 pr-2 text-right">{t.value ? formatCompactINR(t.value) : "—"}</td>
+                    <td className="py-1.5 text-xs text-ink-faint">{t.note ?? ""}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {data.topOpportunities.map((t) => (
-                    <tr key={t.id} className="border-b border-line/60 align-top">
-                      <td className="py-1.5 pr-2 font-medium text-ink">{t.accountName}</td>
-                      <td className="py-1.5 pr-2 text-ink-soft">{t.dealType ?? "—"}</td>
-                      <td className="figure py-1.5 pr-2 text-right">{t.value ? formatCompactINR(t.value) : "—"}</td>
-                      <td className="py-1.5 text-xs text-ink-faint">{t.note ?? ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           )}
         </Card>
 
@@ -185,32 +157,30 @@ export default async function DashboardPage() {
           {data.recentLostDeals.length === 0 ? (
             <p className="py-10 text-center text-sm text-ink-faint">No lost deals.</p>
           ) : (
-            <div className="max-h-64 overflow-y-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-line text-xs text-ink-soft">
-                    <th className="py-1.5 pr-2">Account</th>
-                    <th className="figure py-1.5 pr-2 text-right">Value</th>
-                    <th className="py-1.5">Why</th>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-line text-xs text-ink-soft">
+                  <th className="py-1.5 pr-2">Account</th>
+                  <th className="figure py-1.5 pr-2 text-right">Value</th>
+                  <th className="py-1.5">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentLostDeals.map((d, i) => (
+                  <tr key={i} className="border-b border-line/60 align-top">
+                    <td className="py-1.5 pr-2 font-medium text-ink">{d.accountName}</td>
+                    <td className="figure py-1.5 pr-2 text-right text-danger">{formatCompactINR(d.value)}</td>
+                    <td className="py-1.5 text-xs text-ink-faint">{d.note ?? "—"}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {data.recentLostDeals.map((d, i) => (
-                    <tr key={i} className="border-b border-line/60 align-top">
-                      <td className="py-1.5 pr-2 font-medium text-ink">{d.accountName}</td>
-                      <td className="figure py-1.5 pr-2 text-right text-danger">{formatCompactINR(d.value)}</td>
-                      <td className="py-1.5 text-xs text-ink-faint">{d.note ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           )}
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card title="Target vs actual by owner (this month)">
+        <Card title="Target vs actual by owner">
           <TargetVsActualChart data={data.targetVsActual} />
         </Card>
         <Card title="Lead funnel">

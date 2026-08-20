@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Nav } from "@/components/Nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cyber BU Console",
+  title: {
+    default: "Cyber BU Console",
+    template: "%s · Cyber BU Console",
+  },
   description: "Leads, deals, and closures tracking for the Cybersecurity BU",
 };
 
@@ -28,10 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-paper text-ink">
-        <Nav />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

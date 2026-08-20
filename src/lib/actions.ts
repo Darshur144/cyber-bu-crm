@@ -1,8 +1,20 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { generateSampleTelemetry } from "@/lib/telemetry";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+function revalidateCrm() {
+  revalidatePath("/executive-dashboard");
+  revalidatePath("/opportunities");
+  revalidatePath("/renewals");
+  revalidatePath("/oem");
+  revalidatePath("/lead-generation");
+  revalidatePath("/accounts");
+  revalidatePath("/our-people");
+  revalidatePath("/pipeline");
+}
 
 export async function createLead(formData: FormData) {
   const contactName = String(formData.get("contactName") ?? "").trim();
@@ -34,9 +46,8 @@ export async function createLead(formData: FormData) {
     },
   });
 
-  revalidatePath("/pipeline");
-  revalidatePath("/dashboard");
-  redirect("/quick-entry?created=lead");
+  revalidateCrm();
+  redirect("/lead-generation?created=lead");
 }
 
 export async function logActivity(formData: FormData) {
@@ -62,9 +73,8 @@ export async function logActivity(formData: FormData) {
     },
   });
 
-  revalidatePath("/pipeline");
-  revalidatePath("/dashboard");
-  redirect("/quick-entry?created=activity");
+  revalidateCrm();
+  redirect("/lead-generation?created=activity");
 }
 
 export async function updateDealStage(formData: FormData) {
@@ -87,8 +97,7 @@ export async function updateDealStage(formData: FormData) {
     },
   });
 
-  revalidatePath("/pipeline");
-  revalidatePath("/dashboard");
+  revalidateCrm();
 }
 
 export async function updateDeal(formData: FormData) {
@@ -129,7 +138,11 @@ export async function updateDeal(formData: FormData) {
     },
   });
 
-  revalidatePath("/pipeline");
-  revalidatePath("/dashboard");
-  redirect("/pipeline?updated=1");
+  revalidateCrm();
+  redirect(`/opportunities/${dealId}`);
+}
+
+export async function generateSampleTelemetryAction() {
+  await generateSampleTelemetry(18);
+  revalidatePath("/telemetry", "layout");
 }
