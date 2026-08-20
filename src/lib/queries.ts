@@ -207,7 +207,6 @@ export async function getDashboardData() {
     .filter((d) => d.actualCloseDate && d.actualCloseDate.getFullYear() === now.getFullYear())
     .reduce((s, d) => s + d.value, 0);
   const targetTotal = targets.reduce((s, t) => s + t.amount, 0);
-  const estimatedMargin = 0;
 
   return {
     pipelineValue,
@@ -227,7 +226,6 @@ export async function getDashboardData() {
     installBaseCount,
     ytdWon,
     targetTotal,
-    estimatedMargin,
   };
 }
 

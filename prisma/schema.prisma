@@ -126,7 +126,6 @@ model Deal {
   stage             DealStage    @default(QUALIFIED)
   sourceStatus      String?
   value             Float
-  marginPercent     Float?
   expectedCloseDate DateTime?
   actualCloseDate   DateTime?
   lostReason        LostReason?
