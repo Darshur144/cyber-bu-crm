@@ -31,7 +31,7 @@ export default async function ExecutiveDashboardPage() {
       <div className="mb-8 flex flex-wrap gap-8">
         <IconStat label="Target" value={formatCompactINR(data.targetTotal)} tone="accent2" />
         <IconStat label="YTD" value={formatCompactINR(data.ytdWon)} />
-        <IconStat label="Margin" value={formatCompactINR(data.estimatedMargin)} />
+        <IconStat label="Margin" value="—" />
         <IconStat label="Pipeline" value={formatCompactINR(data.pipelineValue)} tone="accent2" />
       </div>
 

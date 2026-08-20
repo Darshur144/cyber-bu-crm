@@ -101,7 +101,6 @@ export async function getDashboardData() {
         fiscalQuarter: true,
         fiscalYear: true,
         sourceStatus: true,
-        marginPercent: true,
         lostReason: true,
         title: true,
         actualCloseDate: true,
@@ -208,7 +207,7 @@ export async function getDashboardData() {
     .filter((d) => d.actualCloseDate && d.actualCloseDate.getFullYear() === now.getFullYear())
     .reduce((s, d) => s + d.value, 0);
   const targetTotal = targets.reduce((s, t) => s + t.amount, 0);
-  const estimatedMargin = openDeals.reduce((s, d) => s + d.value * ((d.marginPercent ?? 0) / 100), 0);
+  const estimatedMargin = 0;
 
   return {
     pipelineValue,
